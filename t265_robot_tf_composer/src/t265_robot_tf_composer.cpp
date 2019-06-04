@@ -3,11 +3,37 @@
 void odomCallback(const nav_msgs::OdometryConstPtr& msg)
 {
   static tf2_ros::TransformBroadcaster br;
-  geometry_msgs::TransformStamped tfStamped;
-  geometry_msgs::TransformStamped transformStamped;
+  geometry_msgs::TransformStamped tfCameraToHeadTilt;
+  geometry_msgs::TransformStamped tfHeadTiltToHeadPan;
+  geometry_msgs::TransformStamped tfHeadPanToBody;
+  geometry_msgs::TransformStamped tfOdom;
 
   try {
-    tfStamped = tfBuffer.lookupTransform("camera_pose_frame",
+    tfCameraToHeadTilt = tfBuffer.lookupTransform("camera_pose_frame",
+                                         "op3/head_tilt_link",
+                                         ros::Time(0));
+  }
+  catch (tf2::TransformException &ex) {
+    ROS_WARN("%s",ex.what());
+    ros::Duration(1.0).sleep();
+    // continue;
+    return;
+  }
+
+  try {
+    tfHeadTiltToHeadPan = tfBuffer.lookupTransform("op3/head_tilt_link",
+                                         "op3/head_pan_link",
+                                         ros::Time(0));
+  }
+  catch (tf2::TransformException &ex) {
+    ROS_WARN("%s",ex.what());
+    ros::Duration(1.0).sleep();
+    // continue;
+    return;
+  }
+
+  try {
+    tfHeadPanToBody = tfBuffer.lookupTransform("op3/head_pan_link",
                                          "op3/body_link",
                                          ros::Time(0));
   }
@@ -18,29 +44,29 @@ void odomCallback(const nav_msgs::OdometryConstPtr& msg)
     return;
   }
 
-  transformStamped.header.stamp = ros::Time::now();
-  transformStamped.header.frame_id = "odom";
-  transformStamped.child_frame_id = "op3/body_link";
+  tfOdom.header.stamp = ros::Time::now();
+  tfOdom.header.frame_id = "odom";
+  tfOdom.child_frame_id = "op3/body_link";
 
   // Transform
-  transformStamped.transform.translation.x =
-    msg->pose.pose.position.x + tfStamped.transform.translation.x;
-  transformStamped.transform.translation.y =
-    msg->pose.pose.position.y + tfStamped.transform.translation.y;
-  transformStamped.transform.translation.z =
-    msg->pose.pose.position.z + tfStamped.transform.translation.z;
+  tfOdom.transform.translation.x = msg->pose.pose.position.x;
+  tfOdom.transform.translation.y = msg->pose.pose.position.y;
+  tfOdom.transform.translation.z = msg->pose.pose.position.z;
 
   // Rotation
-  tf2::Quaternion newQ, tfStampedQ, msgQ;
-  tf2::convert(tfStamped.transform.rotation, tfStampedQ);
+  // tfCameraToHeadTilt tfHeadTiltToHeadPan tfHeadPanToBody tfOdom
+  tf2::Quaternion odomQ, headPanBodyQ, headTiltHeadPanQ, camHeadTiltQ, msgQ;
+  tf2::convert(tfHeadPanToBody.transform.rotation, headPanBodyQ);
+  tf2::convert(tfHeadTiltToHeadPan.transform.rotation, headTiltHeadPanQ);
+  tf2::convert(tfCameraToHeadTilt.transform.rotation, camHeadTiltQ);
   tf2::convert(msg->pose.pose.orientation, msgQ);
 
-  newQ = tfStampedQ * msgQ;
-  newQ.normalize();
+  odomQ = headPanBodyQ * headTiltHeadPanQ  * camHeadTiltQ * msgQ;
+  odomQ.normalize();
 
-  tf2::convert(newQ, transformStamped.transform.rotation);
+  tf2::convert(odomQ, tfOdom.transform.rotation);
 
-  br.sendTransform(transformStamped);
+  br.sendTransform(tfOdom);
 
 }
 
@@ -51,7 +77,7 @@ int main(int argc, char **argv)
   ros::NodeHandle nh;
 
   // odom topic subscriber
-  ros::Subscriber odom_sub = nh.subscribe("odometry", 10, &odomCallback);
+  ros::Subscriber odom_sub = nh.subscribe("/camera/odom/sample", 10, &odomCallback);
 
   // tf2_ros::Buffer tfBuffer;
   tf2_ros::TransformListener tfListener(tfBuffer);
