@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<package>
+  <name>t265_robot_tf_tools</name>
+  <version>0.0.1</version>
+  <description>
+   <p>Metapackage that contains T265 TF issue solver</p>
+  </description>
+
+  <maintainer email="y-tanaka@jsk.t.u-tokyo.ac.jp">Yoshimaru Tanaka</maintainer>
+  <author email="y-tanaka@jsk.t.u-tokyo.ac.jp">Yoshimaru Tanaka</author>
+
+  <license>BSD</license>
+  <url type="website">http://ros.org/wiki/t265_robot_tf_tools</url>
+  <url type="repository">https://github.com/yoshimalucky/t265_robot_tf_tools</url>
+  <url type="bugtracker">https://github.com/yoshimalucky/t265_robot_tf_tools/issues</url>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <!-- <run_depend>realsense2_camera</run_depend> -->
+  <run_depend>t265_robot_tf_composer</run_depend>
+  <export>
+    <metapackage/>
+  </export>
+</package>
