@@ -9,7 +9,8 @@
 #include <nav_msgs/Odometry.h>
 #include <geometry_msgs/TransformStamped.h>
 
-double x_1, x_2, y_1, y_2, z_1, z_2;
+double x_1, y_1, z_1;
+// double x_2, y_2, z_2;
 int count = 0;
 
 tf2_ros::Buffer tfBuffer;
